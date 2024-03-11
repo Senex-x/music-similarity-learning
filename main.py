@@ -19,7 +19,7 @@ class SavifyService:
             api_credentials=(os.getenv('SPOTIPY_CLIENT_ID'), os.getenv('SPOTIPY_CLIENT_SECRET')),
             quality=Quality.WORST,
             download_format=Format.MP3,
-            path_holder=PathHolder(downloads_path=path.join(dirname(__file__), 'data\\files\\music')),
+            path_holder=PathHolder(downloads_path=path.join(dirname(__file__), self.tracks_folder_path)),
             skip_cover_art=True,
             logger=Logger(log_location=path.join(dirname(__file__), 'data\\files')))
 
