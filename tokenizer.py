@@ -3,6 +3,9 @@ from os.path import dirname
 from os.path import join
 from pathlib import Path
 
+import librosa
+import librosa.display
+import numpy
 from joblib import Parallel, delayed
 from pydub import AudioSegment
 from pylab import *
@@ -16,7 +19,8 @@ class MusicTokenizer:
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
 
     def tokenize(self):
-        self.__convert_mp3_files_to_wav()
+        # self.__convert_mp3_files_to_wav()
+        self.__extract_spectrograms()
 
     def __convert_mp3_files_to_wav(self):
         mp3_file_names = listdir(self.music_folder_path)
@@ -32,6 +36,22 @@ class MusicTokenizer:
 
     def __track_is_converted(self, mp3_file_name):
         return Path(join(self.converted_music_folder_path, mp3_file_name[:-4] + '.wav')).exists()
+
+    def __extract_spectrograms(self):
+        def job(i, file_name, file_count):
+            if not self.__track_is_tokenized(file_name):
+                # load the audio file
+                x, sample_rate = librosa.load(join(self.converted_music_folder_path, file_name),
+                                              res_type='kaiser_fast')
+                # extract features from the audio
+                mfcc = np.mean(librosa.feature.mfcc(y=x, sr=sample_rate, n_mfcc=50).T, axis=0)
+
+                numpy.save(join(self.tokenized_music_folder_path, file_name[:-4]), mfcc)
+
+            print(f'Tokenized {i + 1} out of {file_count} .wav files '
+                  f'({round((i + 1) / file_count * 100, 2)}%)')
+
+        self.__execute_in_parallel(job, self.converted_music_folder_path)
 
     def __track_is_tokenized(self, wav_file_name):
         return Path(join(self.tokenized_music_folder_path, wav_file_name[:-4] + '.npy')).exists()
