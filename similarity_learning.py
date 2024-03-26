@@ -19,11 +19,27 @@ class SimilarityLearning:
             samples.append(self.__load_mfcc_vector(file).tolist())
 
         neigh.fit(samples)
-        neighbours = neigh.kneighbors([self.__load_mfcc_vector("2Pac - Ain't Hard 2 Find (ft. B-Legit, C-BO, E-40, Richie Rich).npy").tolist()], 2, return_distance=False)
-        print(neighbours)
 
-        nearest_neighbour = music_token_files[neighbours[0][1]] # Baby Keem - cocoa (with Don Toliver)
-        print(nearest_neighbour)
+        for pair in self.__associate_track_with_nearest_neighbour(neigh, music_token_files):
+            print(f'Track: {pair[0]} \t is most similar to: \t {pair[1]}')
+
+    # Track: Ariana Grande - everytime.npy 	 is most similar to: 	 Akon - Mama Africa.npy
+    # Track: alt - J - Breezeblocks.npy is most similar to: Bastille - Icarus.npy
+    # Track: Akon - I'm So Paid.npy 	 is most similar to: 	 Alan Walker - Alone.npy
+    # Track: A$AP Rocky - Max B(feat.Joe Fox).npy is most similar to: Bad Bunny - Efecto.npy
+    # Track: 21 Savage - Intro.npy 	 is most similar to: 	 Adele - Rolling in the Deep.npy
+    # Track: Alec Benjamin - Steve.npy 	 is most similar to: 	 Ali Gatie - Million Miles Apart.npy
+    # Track: Ali Gatie - Somebody Else.npy 	 is most similar to: 	 Bad Bunny - Otro Atardecer.npy
+
+    def __associate_track_with_nearest_neighbour(self, nn_model, token_files):
+        neighbours = []
+
+        for file in token_files:
+            nearest_neighbours = nn_model.kneighbors([self.__load_mfcc_vector(file).tolist()], 2, return_distance=False)
+            nearest_neighbour = token_files[nearest_neighbours[0][1]]
+            neighbours.append((file, nearest_neighbour))
+
+        return neighbours
 
     def __load_mfcc_vector(self, file_name):
         return numpy.load(join(self.tokenized_music_folder_path, file_name))
