@@ -1,8 +1,17 @@
-from sklearn.neighbors import NearestNeighbors
-import numpy
-from os.path import join
 from os import listdir
 from os.path import dirname
+from os.path import join
+
+import numpy
+from sklearn.neighbors import NearestNeighbors
+
+
+class NeighbourData:
+
+    def __init__(self, origin, neighbour, distance):
+        self.origin = origin
+        self.neighbour = neighbour
+        self.distance = distance
 
 
 class SimilarityLearning:
@@ -11,33 +20,52 @@ class SimilarityLearning:
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
 
     def learn(self):
-        neigh = NearestNeighbors(n_neighbors=5, radius=1)
+        nn_model = NearestNeighbors()
         samples = []
 
         music_token_files = listdir(self.tokenized_music_folder_path)
         for file in music_token_files:
             samples.append(self.__load_mfcc_vector(file).tolist())
 
-        neigh.fit(samples)
+        nn_model.fit(samples)
 
-        for pair in self.__associate_track_with_nearest_neighbour(neigh, music_token_files):
-            print(f'Track: {pair[0]} \t is most similar to: \t {pair[1]}')
+        neighbour_data_list = self.__associate_tracks_with_nearest_neighbour(nn_model, music_token_files)
+        self.__normalize_distances(neighbour_data_list)
 
-    # Track: Ariana Grande - everytime.npy 	 is most similar to: 	 Akon - Mama Africa.npy
-    # Track: alt - J - Breezeblocks.npy is most similar to: Bastille - Icarus.npy
-    # Track: Akon - I'm So Paid.npy 	 is most similar to: 	 Alan Walker - Alone.npy
-    # Track: A$AP Rocky - Max B(feat.Joe Fox).npy is most similar to: Bad Bunny - Efecto.npy
-    # Track: 21 Savage - Intro.npy 	 is most similar to: 	 Adele - Rolling in the Deep.npy
-    # Track: Alec Benjamin - Steve.npy 	 is most similar to: 	 Ali Gatie - Million Miles Apart.npy
-    # Track: Ali Gatie - Somebody Else.npy 	 is most similar to: 	 Bad Bunny - Otro Atardecer.npy
+        for neighbour_data in neighbour_data_list:
+            print(f'Track: {neighbour_data.origin} \t is most similar to: \t {neighbour_data.neighbour} '
+                  f'with similarity of: \t {round(neighbour_data.distance * 100, 2)}%')
 
-    def __associate_track_with_nearest_neighbour(self, nn_model, token_files):
+    @staticmethod
+    def __normalize_distances(neighbour_data_list):
+        max_distance = -1
+
+        for neighbour_data in neighbour_data_list:
+            max_distance = max(max_distance, neighbour_data.distance)
+
+        for neighbour_data in neighbour_data_list:
+            neighbour_data.distance = 1 - neighbour_data.distance / max_distance
+
+    # Track: Bad Bunny - La Corriente.npy 	 is most similar to: 	 Avicii - Talk To Myself.npy with similarity of: 	 90.66%
+    # Track: Baby Keem - trademark usa.npy 	 is most similar to: 	 A$AP Rocky - Holy Ghost (feat. Joe Fox).npy with similarity of: 	 91.25%
+    # Track: Ariana Grande - no tears left to cry.npy 	 is most similar to: 	 Ariana Grande - Hands On Me.npy with similarity of: 	 90.96%
+    # Track: Arctic Monkeys - From The Ritz To The Rubble.npy 	 is most similar to: 	 Arctic Monkeys - The View From The Afternoon.npy with similarity of: 	 93.48%
+    # Track: Alesso - If It Wasn't For You.npy 	 is most similar to: 	 Bastille - Things We Lost In The Fire.npy with similarity of: 	 91.22%
+    # Track: Akon - I Can't Wait.npy 	 is most similar to: 	 Baby Keem - family ties (with Kendrick Lamar).npy with similarity of: 	 91.11%
+    # Track: A$AP Rocky - Jodye.npy 	 is most similar to: 	 A$AP Rocky - Lord Pretty Flacko Jodye 2 (LPFJ2).npy with similarity of: 	 100.0%
+    # Track: A$AP Rocky - Ghetto Symphony (feat. Gunplay & A$AP Ferg).npy 	 is most similar to: 	 Alan Walker - Alone, Pt. II.npy with similarity of: 	 92.71%
+
+    def __associate_tracks_with_nearest_neighbour(self, nn_model, token_files):
         neighbours = []
 
         for file in token_files:
-            nearest_neighbours = nn_model.kneighbors([self.__load_mfcc_vector(file).tolist()], 2, return_distance=False)
-            nearest_neighbour = token_files[nearest_neighbours[0][1]]
-            neighbours.append((file, nearest_neighbour))
+            nearest_neighbours = nn_model.kneighbors([self.__load_mfcc_vector(file).tolist()],
+                                                     n_neighbors=2,
+                                                     return_distance=True)
+            nearest_neighbour = NeighbourData(origin=file,
+                                              neighbour=token_files[nearest_neighbours[1][0][1]],
+                                              distance=nearest_neighbours[0][0][1])
+            neighbours.append(nearest_neighbour)
 
         return neighbours
 
@@ -49,4 +77,3 @@ if __name__ == '__main__':
     print("Running")
 
     SimilarityLearning().learn()
-
