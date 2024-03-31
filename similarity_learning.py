@@ -34,7 +34,7 @@ class SimilarityLearning:
 
         for neighbour_data in neighbour_data_list:
             print(f'Track: {neighbour_data.origin} \t is most similar to: \t {neighbour_data.neighbour} '
-                  f'with similarity of: \t {round(neighbour_data.distance * 100, 2)}%')
+                  f'\t with similarity of: \t {round(neighbour_data.distance * 100, 2)}%')
 
     @staticmethod
     def __normalize_distances(neighbour_data_list):
@@ -62,8 +62,8 @@ class SimilarityLearning:
             nearest_neighbours = nn_model.kneighbors([self.__load_mfcc_vector(file).tolist()],
                                                      n_neighbors=2,
                                                      return_distance=True)
-            nearest_neighbour = NeighbourData(origin=file,
-                                              neighbour=token_files[nearest_neighbours[1][0][1]],
+            nearest_neighbour = NeighbourData(origin=self.__trim_extension(file),
+                                              neighbour=self.__trim_extension(token_files[nearest_neighbours[1][0][1]]),
                                               distance=nearest_neighbours[0][0][1])
             neighbours.append(nearest_neighbour)
 
@@ -71,6 +71,10 @@ class SimilarityLearning:
 
     def __load_mfcc_vector(self, file_name):
         return numpy.load(join(self.tokenized_music_folder_path, file_name))
+
+    @staticmethod
+    def __trim_extension(file_name):
+        return file_name[:file_name.index('.')]
 
 
 if __name__ == '__main__':
