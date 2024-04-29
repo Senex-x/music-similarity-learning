@@ -22,7 +22,7 @@ class SimilarityLearning:
 
     def learn(self):
         samples = []
-        music_token_files = listdir(self.tokenized_music_folder_path)[:1000]
+        music_token_files = listdir(self.tokenized_music_folder_path)[:20000]
         for file in music_token_files:
             samples.append(self.__load_mfcc_vector(file).tolist())
 
@@ -32,7 +32,8 @@ class SimilarityLearning:
 
         print(f'Track: {neighbour_data_list[0].origin} is most similar to:')
         for i, neighbour_data in enumerate(neighbour_data_list):
-            print(f'{i + 1}: {neighbour_data.neighbour} \t // with similarity of: {round(neighbour_data.distance * 100, 2)}%')
+            print(f'{i + 1}: {neighbour_data.neighbour}'
+                  f'\t // with similarity of: {round(neighbour_data.distance * 100, 2)}%')
 
         # self.__find_nearest_neighbour_for_each_track(nn_model, music_token_files)
 

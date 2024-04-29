@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Similar track search</title>
+</head>
+<body>
+<script src="script.js"></script>
+<div style="font-family:'Arial'; padding-bottom: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; background-color: #6d93ff">
+    <h1>Search for similar tracks</h1>
+    <div style="display: flex; flex-direction: row; align-items: center; justify-content: center">
+        <form action="/upload_music_file" method=post enctype=multipart/form-data>
+            <input type=file name=file accept=".mp3">
+            <input type=submit value="Upload"/>
+        </form>
+        <button style="font-family:'Arial'; padding: 10px; font-size: 20px; height: 100%" type="button"
+                onclick="findSimilarMusic()">Search
+        </button>
+    </div>
+    <table id="result"
+           cellspacing="10px"
+           style='padding: 10px; margin-top: 60px; font-family:"Arial", Courier, monospace; font-size:20px;'></table>
+</div>
+</body>
+</html>
