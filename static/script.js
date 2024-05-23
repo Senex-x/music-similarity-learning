@@ -7,23 +7,23 @@
     }
 
     function findSimilarMusic() {
-        // let query = document.getElementById('query').value
         post('/find_similar_music', function (rawResponse) {
             let i = 1
             console.log(rawResponse)
             let response = JSON.parse(rawResponse)
             let finalHtml = '<tr align="center" valign="center"><th></th><th>Track name</th><th>Similarity score</th></tr>'
             response.forEach((trackData) => {
-                finalHtml += createTrackRow(i++, "trackName", 0.23452345324)
+                finalHtml += createTrackRow(i++, trackData['neighbour'], trackData['distance']['value'])
             })
             document.getElementById('result').innerHTML = finalHtml
+            document.getElementById('trackNameText').innerHTML = response[0]['origin']
         })
     }
 
     function createTrackRow(i, trackName, similarityScore) {
         return '<tr><td><p style="margin-right: 10px">' + i + "." + '</p>' +
-               '</td><td><p>' + trackName + '</p>' +
-               '</td><td align="center" valign="center">' + similarityScore.toFixed(4) + '%</td></tr>'
+               '</td><td><p style="margin-right: 10px">' + trackName + '</p>' +
+               '</td><td align="center" valign="center">' + (similarityScore * 100).toFixed(2) + '%</td></tr>'
     }
 
     function uploadTrack() {

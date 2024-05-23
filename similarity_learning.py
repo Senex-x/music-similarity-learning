@@ -20,15 +20,18 @@ class SimilarityLearning:
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
         self.nn_model = NearestNeighbors()
 
-    def learn(self):
+    def learn(self, track_file_name, amount=10):
         samples = []
-        music_token_files = listdir(self.tokenized_music_folder_path)[:20000]
+        music_token_files = listdir(self.tokenized_music_folder_path)[:1000]
         for file in music_token_files:
             samples.append(self.__load_mfcc_vector(file).tolist())
 
+        print("Started learning")
         self.nn_model.fit(samples)
 
-        neighbour_data_list = self.__find_neighbours_for_track('A Day To Remember - Homesick', music_token_files)
+        neighbour_data_list = self.__find_neighbours_for_track(self.__trim_extension(track_file_name),
+                                                               music_token_files,
+                                                               amount)
 
         print(f'Track: {neighbour_data_list[0].origin} is most similar to:')
         for i, neighbour_data in enumerate(neighbour_data_list):
@@ -36,12 +39,13 @@ class SimilarityLearning:
                   f'\t // with similarity of: {round(neighbour_data.distance * 100, 2)}%')
 
         # self.__find_nearest_neighbour_for_each_track(nn_model, music_token_files)
+        return neighbour_data_list
 
     def __find_neighbours_for_track(self, track_name, token_files, neighbours_amount=10):
         neighbours = []
         (distances_output, neighbours_output) = self.nn_model.kneighbors(
             [self.__load_mfcc_vector(track_name + '.npy').tolist()],
-            n_neighbors=neighbours_amount + 1,
+            n_neighbors=neighbours_amount + 1 + 10,  # fix normalization and remove + 10
             return_distance=True)
 
         for i in range(len(list(neighbours_output[0])))[1:]:
@@ -54,7 +58,7 @@ class SimilarityLearning:
                               distance=distance))
 
         self.__normalize_distances(neighbours)
-        return neighbours
+        return neighbours[:neighbours_amount]  # fix normalization and remove slicing
 
     def __find_nearest_neighbour_for_each_track(self, token_files):
         neighbour_data_list = self.__associate_tracks_with_nearest_neighbour(token_files)
@@ -105,4 +109,6 @@ class SimilarityLearning:
 if __name__ == '__main__':
     print("Running")
 
-    SimilarityLearning().learn()
+    SimilarityLearning().learn('Bad Bunny - La Corriente.')
+
+# jupyter notebook --NotebookApp.allow_origin='https://colab.research.google.com' --port=8888 --NotebookApp.port_retries=0
