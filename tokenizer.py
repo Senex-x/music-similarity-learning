@@ -1,4 +1,4 @@
-from os import listdir
+from os import listdir, remove
 from os.path import dirname
 from os.path import join
 from pathlib import Path
@@ -62,16 +62,16 @@ class MusicTokenizer:
                                               offset=5.0,
                                               mono=True,
                                               res_type='kaiser_fast')
+
+                # extract features from the audio
+                mfcc_matrix = librosa.feature.mfcc(y=x, sr=sample_rate, n_mfcc=128)
+                # output: coefficients to time frames
+                mfcc = np.mean(mfcc_matrix, axis=1)
+
+                numpy.save(join(self.tokenized_music_folder_path, wav_file_name[:-4]), mfcc)
             except:
                 print(f"Error while tokenizing {wav_file_name}")
-                raise
-
-            # extract features from the audio
-            mfcc_matrix = librosa.feature.mfcc(y=x, sr=sample_rate, n_mfcc=128)
-            # output: coefficients to time frames
-            mfcc = np.mean(mfcc_matrix, axis=1)
-
-            numpy.save(join(self.tokenized_music_folder_path, wav_file_name[:-4]), mfcc)
+                # remove(join(self.converted_music_folder_path, wav_file_name))
 
     def __track_is_tokenized(self, wav_file_name):
         return Path(join(self.tokenized_music_folder_path, wav_file_name[:-4] + '.npy')).exists()
