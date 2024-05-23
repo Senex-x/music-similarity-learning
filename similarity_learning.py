@@ -20,7 +20,7 @@ class SimilarityLearning:
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
         self.nn_model = NearestNeighbors()
 
-    def learn(self, track_file_name, amount=10):
+    def find_similar_tracks(self, track_file_name, amount=10):
         samples = []
         music_token_files = listdir(self.tokenized_music_folder_path)[:1000]
         for file in music_token_files:
@@ -43,6 +43,7 @@ class SimilarityLearning:
 
     def __find_neighbours_for_track(self, track_name, token_files, neighbours_amount=10):
         neighbours = []
+
         (distances_output, neighbours_output) = self.nn_model.kneighbors(
             [self.__load_mfcc_vector(track_name + '.npy').tolist()],
             n_neighbors=neighbours_amount + 1 + 10,  # fix normalization and remove + 10
@@ -109,6 +110,6 @@ class SimilarityLearning:
 if __name__ == '__main__':
     print("Running")
 
-    SimilarityLearning().learn('Bad Bunny - La Corriente.')
+    SimilarityLearning().find_similar_tracks('$NOT - MEGAN.')
 
 # jupyter notebook --NotebookApp.allow_origin='https://colab.research.google.com' --port=8888 --NotebookApp.port_retries=0
