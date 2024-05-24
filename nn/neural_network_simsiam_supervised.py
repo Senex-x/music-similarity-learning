@@ -5,13 +5,13 @@ import numpy as np
 import os
 import random
 import tensorflow as tf
+# tensorflow 2.10.0 !!!!!!!!! to work with gpu
 from pathlib import Path
 import gdown
 
-from keras import applications
 from keras import layers
+from keras import api
 from keras import losses
-from keras import ops
 from keras import optimizers
 from keras import metrics
 from keras import Model
@@ -20,7 +20,7 @@ import zipfile
 
 target_shape = (200, 200)
 
-cache_dir = join(dirname(__file__), 'data/cache')
+cache_dir = join(dirname(__file__), '../data/cache')
 anchor_images_path = join(cache_dir, "left")
 positive_images_path = join(cache_dir, "right")
 
@@ -36,6 +36,14 @@ positive_images_path = join(cache_dir, "right")
 # zf = zipfile.ZipFile('right.zip')
 # zf.extractall(path=cache_dir)
 # zf.close()
+
+physical_devices = tf.config.list_physical_devices('GPU')
+if len(physical_devices) > 0:
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+    print(f"TensorFlow is using GPU: {physical_devices[0]}")
+else:
+    print("No GPU devices found. TensorFlow will run on CPU.")
+
 
 def preprocess_image(filename):
     """
@@ -61,6 +69,7 @@ def preprocess_triplets(anchor, positive, negative):
         preprocess_image(positive),
         preprocess_image(negative),
     )
+
 
 # We need to make sure both the anchor and positive images are loaded in
 # sorted order so we can match them together.
@@ -103,6 +112,7 @@ train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
 val_dataset = val_dataset.batch(32, drop_remainder=False)
 val_dataset = val_dataset.prefetch(tf.data.AUTOTUNE)
 
+
 def visualize(anchor, positive, negative):
     """Visualize a few triplets from the supplied batches."""
 
@@ -141,6 +151,7 @@ for layer in base_cnn.layers:
         trainable = True
     layer.trainable = trainable
 
+
 class DistanceLayer(layers.Layer):
     """
     This layer is responsible for computing the distance between the anchor
@@ -152,8 +163,8 @@ class DistanceLayer(layers.Layer):
         super().__init__(**kwargs)
 
     def call(self, anchor, positive, negative):
-        ap_distance = ops.sum(tf.square(anchor - positive), -1)
-        an_distance = ops.sum(tf.square(anchor - negative), -1)
+        ap_distance = tf.reduce_sum(tf.square(anchor - positive), -1)
+        an_distance = tf.reduce_sum(tf.square(anchor - negative), -1)
         return (ap_distance, an_distance)
 
 
@@ -170,6 +181,7 @@ distances = DistanceLayer()(
 siamese_network = Model(
     inputs=[anchor_input, positive_input, negative_input], outputs=distances
 )
+
 
 class SiameseModel(Model):
     """The Siamese Network model with a custom training and testing loops.
@@ -235,6 +247,7 @@ class SiameseModel(Model):
         # We need to list our metrics here so the `reset_states()` can be
         # called automatically.
         return [self.loss_tracker]
+
 
 siamese_model = SiameseModel(siamese_network)
 siamese_model.compile(optimizer=optimizers.Adam(0.0001))
