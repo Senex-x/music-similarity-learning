@@ -20,18 +20,20 @@ class SimilaritySegmentData:
     def __init__(self, similarity):
         self.similarity = similarity
 
+
 class SimilarityLearning:
 
     def __init__(self):
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
+        self.additional_neighbours_for_normalization = 10
         self.nn_model = NearestNeighbors()
-        self.music_token_files = self.__filter_not_user_uploaded(listdir(self.tokenized_music_folder_path))
-        self.__train_model()
+        self.music_token_files = self.__filter_not_user_uploaded(listdir(self.tokenized_music_folder_path))[:100] # TODO TEMPORARY FOR TESTING
+        self.__train_model(self.music_token_files)
 
-    def __train_model(self):
+    def __train_model(self, music_token_files):
         samples = []
-        print(f'train list size {len(self.music_token_files)}')
-        for file in self.music_token_files:
+        print(f'train list size {len(music_token_files)}')
+        for file in music_token_files:
             samples.append(self.__load_mfcc_vector(file).tolist())
         print("Started learning...")
         self.nn_model.fit(samples)
@@ -42,27 +44,33 @@ class SimilarityLearning:
         neighbour_data_list = self.__find_neighbours_for_track(self.__trim_extension(track_file_name),
                                                                self.music_token_files,
                                                                amount)
+        self.__visualise_neighbours(neighbour_data_list)
+        # self.__find_nearest_neighbour_for_each_track(nn_model, music_token_files)
+        return neighbour_data_list
 
+    def __visualise_neighbours(self, neighbour_data_list: list[NeighbourData]):
         print(f'Track: {neighbour_data_list[0].origin} is most similar to:')
         for i, neighbour_data in enumerate(neighbour_data_list):
             print(f'{i + 1}: {neighbour_data.neighbour}'
                   f'\t // with similarity of: {round(neighbour_data.distance * 100, 2)}%')
 
-        # self.__find_nearest_neighbour_for_each_track(nn_model, music_token_files)
-        return neighbour_data_list
-
-    def find_segment_similarities(self, uploaded_track_name, segments_amount=10):
+    def find_segment_similarities(self,
+                                  uploaded_track_name,
+                                  found_neighbours_data_list: list[NeighbourData],
+                                  segments_amount=10):
         track_name = self.__trim_extension(uploaded_track_name)
-        mfcc = list(self.__load_mfcc_vector(track_name + '.npy'))
-        print(shape(mfcc))
+        neighbour_token_files_list = list(map(lambda neighbour_data: neighbour_data.neighbour + '.npy', found_neighbours_data_list))
+        self.__train_model(neighbour_token_files_list)
 
+        neighbour_data_list = self.__find_neighbours_for_track(track_name, neighbour_token_files_list)[:-self.additional_neighbours_for_normalization]
+        self.__visualise_neighbours(neighbour_data_list)
 
     def __find_neighbours_for_track(self, track_name, token_files, neighbours_amount=10):
         neighbours = []
 
         (distances_output, neighbours_output) = self.nn_model.kneighbors(
             [self.__load_mfcc_vector(track_name + '.npy').tolist()],
-            n_neighbors=neighbours_amount + 1 + 10,  # fix normalization and remove + 10
+            n_neighbors=neighbours_amount + self.additional_neighbours_for_normalization,  # fix normalization and remove + neighbours
             return_distance=True)
 
         for i in range(len(list(neighbours_output[0]))):
@@ -75,15 +83,7 @@ class SimilarityLearning:
                               distance=distance))
 
         self.__normalize_distances(neighbours)
-        return neighbours[:neighbours_amount]  # fix normalization and remove slicing
-
-    def __find_nearest_neighbour_for_each_track(self, token_files):
-        neighbour_data_list = self.__associate_tracks_with_nearest_neighbour(token_files)
-        self.__normalize_distances(neighbour_data_list)
-
-        for neighbour_data in neighbour_data_list:
-            print(f'Track: {neighbour_data.origin} \t is most similar to: \t {neighbour_data.neighbour} '
-                  f'\t with similarity of: \t {round(neighbour_data.distance * 100, 2)}%')
+        return neighbours  # fix normalization and remove slicing
 
     @staticmethod
     def __normalize_distances(neighbour_data_list):
@@ -94,24 +94,16 @@ class SimilarityLearning:
         for neighbour_data in neighbour_data_list:
             neighbour_data.distance = 1 - neighbour_data.distance / max_distance
 
-    def __associate_tracks_with_nearest_neighbour(self, token_files):
-        neighbours = []
-        for file in token_files:
-            nearest_neighbours = self.nn_model.kneighbors([self.__load_mfcc_vector(file).tolist()],
-                                                          n_neighbors=2,
-                                                          return_distance=True)
-            nearest_neighbour = NeighbourData(origin=self.__trim_extension(file),
-                                              neighbour=self.__trim_extension(token_files[nearest_neighbours[1][0][1]]),
-                                              distance=nearest_neighbours[0][0][1])
-            neighbours.append(nearest_neighbour)
-        return neighbours
 
     def __load_mfcc_vector(self, file_name):
         return numpy.load(join(self.tokenized_music_folder_path, file_name))
 
     @staticmethod
     def __trim_extension(file_name):
-        return file_name[:file_name.rindex('.')]
+        try:
+            return file_name[:file_name.rindex('.')]
+        except:
+            return file_name
 
     @staticmethod
     def __trim_uploaded_postfix(string):
@@ -121,13 +113,33 @@ class SimilarityLearning:
     def __filter_not_user_uploaded(file_names):
         return list(filter(lambda file_name: "-user-uploaded" not in file_name, file_names))
 
+    # def __associate_tracks_with_nearest_neighbour(self, token_files):
+#     neighbours = []
+#     for file in token_files:
+#         nearest_neighbours = self.nn_model.kneighbors([self.__load_mfcc_vector(file).tolist()],
+#                                                       n_neighbors=2,
+#                                                       return_distance=True)
+#         nearest_neighbour = NeighbourData(origin=self.__trim_extension(file),
+#                                           neighbour=self.__trim_extension(token_files[nearest_neighbours[1][0][1]]),
+#                                           distance=nearest_neighbours[0][0][1])
+#         neighbours.append(nearest_neighbour)
+#     return neighbours
+
+    # def __find_nearest_neighbour_for_each_track(self, token_files):
+    #     neighbour_data_list = self.__associate_tracks_with_nearest_neighbour(token_files)
+    #     self.__normalize_distances(neighbour_data_list)
+    #
+    #     for neighbour_data in neighbour_data_list:
+    #         print(f'Track: {neighbour_data.origin} \t is most similar to: \t {neighbour_data.neighbour} '
+    #               f'\t with similarity of: \t {round(neighbour_data.distance * 100, 2)}%')
+
 
 if __name__ == '__main__':
     print("Running")
 
     # SimilarityLearning().find_similar_tracks('$NOT - MEGAN.')
-    SimilarityLearning().find_segment_similarities('$NOT - MEGAN.')
+    model = SimilarityLearning()
+    neighbours_list = model.find_similar_tracks('Nirvana - Smells Like Teen Spirit')
+    model.find_segment_similarities('Nirvana - Smells Like Teen Spirit', neighbours_list)
 
 # jupyter notebook --NotebookApp.allow_origin='https://colab.research.google.com' --port=8888 --NotebookApp.port_retries=0
-
-
