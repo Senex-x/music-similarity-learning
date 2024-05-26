@@ -9,10 +9,10 @@ from sklearn.neighbors import NearestNeighbors
 
 
 class NeighbourData:
-    def __init__(self, origin, neighbour, distance):
+    def __init__(self, origin, neighbour, similarity):
         self.origin = origin
         self.neighbour = neighbour
-        self.distance = distance
+        self.similarity = similarity
 
 
 class SimilaritySegmentData:
@@ -22,8 +22,9 @@ class SimilaritySegmentData:
 
 
 class SimilarityReport:
-    def __init__(self, original_track_name, neighbour_data_list: list[NeighbourData],
-                 segment_data_list: list[SimilaritySegmentData]):
+    def __init__(self, original_track_name,
+                 neighbour_data_list: list[NeighbourData],
+                 segment_data_list: dict[list[SimilaritySegmentData]]):
         self.original_track_name = original_track_name
         self.neighbour_data_list = neighbour_data_list
         self.segment_data_list = segment_data_list
@@ -70,32 +71,36 @@ class SimilarityLearning:
         print(f'Track: {neighbour_data_list[0].origin} is most similar to:')
         for i, neighbour_data in enumerate(neighbour_data_list):
             print(f'{i + 1}: {neighbour_data.neighbour}'
-                  f'\t // with similarity of: {round(neighbour_data.distance * 100, 2)}%')
+                  f'\t // with similarity of: {neighbour_data.similarity}%')
 
     def find_segment_similarities(self,
                                   uploaded_track_name,
                                   found_neighbours_data_list: list[NeighbourData],
-                                  segments_amount=2):
-        segment_data_list = []
+                                  segments_amount=8):
         track_name = self.__trim_extension(uploaded_track_name)
         neighbour_token_files_list = list(
             map(lambda neighbour_data: neighbour_data.neighbour + '.npy', found_neighbours_data_list))
 
         mfcc_length = 128
         segment_length = round(mfcc_length / segments_amount)
+        segment_reports = {}
 
         for i in range(segments_amount):
             segment = (segment_length * i, segment_length * (i + 1))
             self.__train_model(neighbour_token_files_list, segment)
             neighbour_data_list = self.__find_neighbours_for_track(track_name, neighbour_token_files_list, segment)
-            print(f'### SEGMENT {i + 1}')
             self.__visualise_neighbours(neighbour_data_list)
+            for neighbour_data in neighbour_data_list:
+                current_value = segment_reports.get(neighbour_data.neighbour)
+                if current_value:
+                    current_value.append(neighbour_data.similarity)
+                else:
+                    segment_reports[neighbour_data.neighbour] = [neighbour_data.similarity]
 
-            # segment_data_list.append(SimilaritySegmentData(i, ))
+        return segment_reports
 
-        return segment_data_list
-
-    def __find_neighbours_for_track(self, track_name, token_files, segment: tuple[int, int] = None, neighbours_amount=10):
+    def __find_neighbours_for_track(self, track_name, token_files, segment: tuple[int, int] = None,
+                                    neighbours_amount=10):
         neighbours = []
         mfcc = self.__preserve_segment(list(self.__load_mfcc_vector(track_name + '.npy')), segment)
 
@@ -111,7 +116,7 @@ class SimilarityLearning:
             neighbours.append(
                 NeighbourData(origin=self.__trim_uploaded_postfix(track_name),
                               neighbour=self.__trim_extension(token_files[neighbour]),
-                              distance=distance))
+                              similarity=distance))
 
         self.__normalize_distances(neighbours)
         return neighbours
@@ -121,9 +126,10 @@ class SimilarityLearning:
         max_distance = -1
 
         for neighbour_data in neighbour_data_list:
-            max_distance = max(max_distance, neighbour_data.distance)
+            max_distance = max(max_distance, neighbour_data.similarity)
         for neighbour_data in neighbour_data_list:
-            neighbour_data.distance = 1 - neighbour_data.distance / (max_distance * 1.1)
+            similarity_score = 1 - neighbour_data.similarity / (max_distance * 1.1)
+            neighbour_data.similarity = round(similarity_score * 100, 2)
 
     def __load_mfcc_vector(self, file_name):
         return numpy.load(join(self.tokenized_music_folder_path, file_name))
@@ -172,6 +178,11 @@ if __name__ == '__main__':
     # SimilarityLearning().find_similar_tracks('$NOT - MEGAN.')
     model = SimilarityLearning()
     neighbours_list = model.find_similar_tracks('$uicideboy$ - WAR TIME ALL THE TIME')
-    model.find_segment_similarities('$uicideboy$ - WAR TIME ALL THE TIME', neighbours_list)
+    segment_similarity = model.find_segment_similarities('$uicideboy$ - WAR TIME ALL THE TIME', neighbours_list)
+    SimilarityReport(
+        '$uicideboy$ - WAR TIME ALL THE TIME',
+        neighbours_list,
+        segment_similarity
+    )
 
 # jupyter notebook --NotebookApp.allow_origin='https://colab.research.google.com' --port=8888 --NotebookApp.port_retries=0
