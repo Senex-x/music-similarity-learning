@@ -8,7 +8,6 @@ from sklearn.neighbors import NearestNeighbors
 
 
 class NeighbourData:
-
     def __init__(self, origin, neighbour, distance):
         self.origin = origin
         self.neighbour = neighbour
@@ -16,9 +15,15 @@ class NeighbourData:
 
 
 class SimilaritySegmentData:
-
     def __init__(self, similarity):
         self.similarity = similarity
+
+
+class SimilarityReport:
+    def __init__(self, original_track_name, neighbour_data_list: list[NeighbourData], segment_data_list: list[SimilaritySegmentData]):
+        self.original_track_name = original_track_name
+        self.neighbour_data_list = neighbour_data_list
+        self.segment_data_list = segment_data_list
 
 
 class SimilarityLearning:
@@ -86,13 +91,13 @@ class SimilarityLearning:
         return neighbours
 
     @staticmethod
-    def __normalize_distances(neighbour_data_list: list[NeighbourData]): # 0 to 36.16 to 52.16
+    def __normalize_distances(neighbour_data_list: list[NeighbourData]):
         max_distance = -1
 
         for neighbour_data in neighbour_data_list:
             max_distance = max(max_distance, neighbour_data.distance)
         for neighbour_data in neighbour_data_list:
-            neighbour_data.distance = 1 - neighbour_data.distance / (max_distance + 5)
+            neighbour_data.distance = 1 - neighbour_data.distance / (max_distance * 1.1)
 
 
     def __load_mfcc_vector(self, file_name):
