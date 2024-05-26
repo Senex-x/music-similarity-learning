@@ -25,7 +25,6 @@ class SimilarityLearning:
 
     def __init__(self):
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
-        self.additional_neighbours_for_normalization = 10
         self.nn_model = NearestNeighbors()
         self.music_token_files = self.__filter_not_user_uploaded(listdir(self.tokenized_music_folder_path))[:100] # TODO TEMPORARY FOR TESTING
         self.__train_model(self.music_token_files)
@@ -48,7 +47,8 @@ class SimilarityLearning:
         # self.__find_nearest_neighbour_for_each_track(nn_model, music_token_files)
         return neighbour_data_list
 
-    def __visualise_neighbours(self, neighbour_data_list: list[NeighbourData]):
+    @staticmethod
+    def __visualise_neighbours(neighbour_data_list: list[NeighbourData]):
         print(f'Track: {neighbour_data_list[0].origin} is most similar to:')
         for i, neighbour_data in enumerate(neighbour_data_list):
             print(f'{i + 1}: {neighbour_data.neighbour}'
@@ -62,7 +62,7 @@ class SimilarityLearning:
         neighbour_token_files_list = list(map(lambda neighbour_data: neighbour_data.neighbour + '.npy', found_neighbours_data_list))
         self.__train_model(neighbour_token_files_list)
 
-        neighbour_data_list = self.__find_neighbours_for_track(track_name, neighbour_token_files_list)[:-self.additional_neighbours_for_normalization]
+        neighbour_data_list = self.__find_neighbours_for_track(track_name, neighbour_token_files_list)
         self.__visualise_neighbours(neighbour_data_list)
 
     def __find_neighbours_for_track(self, track_name, token_files, neighbours_amount=10):
@@ -70,7 +70,7 @@ class SimilarityLearning:
 
         (distances_output, neighbours_output) = self.nn_model.kneighbors(
             [self.__load_mfcc_vector(track_name + '.npy').tolist()],
-            n_neighbors=neighbours_amount + self.additional_neighbours_for_normalization,  # fix normalization and remove + neighbours
+            n_neighbors=neighbours_amount,
             return_distance=True)
 
         for i in range(len(list(neighbours_output[0]))):
@@ -83,16 +83,16 @@ class SimilarityLearning:
                               distance=distance))
 
         self.__normalize_distances(neighbours)
-        return neighbours  # fix normalization and remove slicing
+        return neighbours
 
     @staticmethod
-    def __normalize_distances(neighbour_data_list):
+    def __normalize_distances(neighbour_data_list: list[NeighbourData]): # 0 to 36.16 to 52.16
         max_distance = -1
 
         for neighbour_data in neighbour_data_list:
             max_distance = max(max_distance, neighbour_data.distance)
         for neighbour_data in neighbour_data_list:
-            neighbour_data.distance = 1 - neighbour_data.distance / max_distance
+            neighbour_data.distance = 1 - neighbour_data.distance / (max_distance + 5)
 
 
     def __load_mfcc_vector(self, file_name):
