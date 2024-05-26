@@ -3,6 +3,7 @@ from os.path import dirname
 from os.path import join
 
 import numpy
+from numpy import shape
 from sklearn.neighbors import NearestNeighbors
 
 
@@ -14,23 +15,32 @@ class NeighbourData:
         self.distance = distance
 
 
+class SimilaritySegmentData:
+
+    def __init__(self, similarity):
+        self.similarity = similarity
+
 class SimilarityLearning:
 
     def __init__(self):
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
         self.nn_model = NearestNeighbors()
+        self.music_token_files = self.__filter_not_user_uploaded(listdir(self.tokenized_music_folder_path))
+        self.__train_model()
+
+    def __train_model(self):
+        samples = []
+        print(f'train list size {len(self.music_token_files)}')
+        for file in self.music_token_files:
+            samples.append(self.__load_mfcc_vector(file).tolist())
+        print("Started learning...")
+        self.nn_model.fit(samples)
+        print("Finished learning")
 
     def find_similar_tracks(self, track_file_name, amount=10):
-        samples = []
-        music_token_files = listdir(self.tokenized_music_folder_path)[:1000]
-        for file in music_token_files:
-            samples.append(self.__load_mfcc_vector(file).tolist())
-
-        print("Started learning")
-        self.nn_model.fit(samples)
-
+        print(f'search list size {len(self.music_token_files)}')
         neighbour_data_list = self.__find_neighbours_for_track(self.__trim_extension(track_file_name),
-                                                               music_token_files,
+                                                               self.music_token_files,
                                                                amount)
 
         print(f'Track: {neighbour_data_list[0].origin} is most similar to:')
@@ -41,6 +51,12 @@ class SimilarityLearning:
         # self.__find_nearest_neighbour_for_each_track(nn_model, music_token_files)
         return neighbour_data_list
 
+    def find_segment_similarities(self, uploaded_track_name, segments_amount=10):
+        track_name = self.__trim_extension(uploaded_track_name)
+        mfcc = list(self.__load_mfcc_vector(track_name + '.npy'))
+        print(shape(mfcc))
+
+
     def __find_neighbours_for_track(self, track_name, token_files, neighbours_amount=10):
         neighbours = []
 
@@ -49,12 +65,12 @@ class SimilarityLearning:
             n_neighbors=neighbours_amount + 1 + 10,  # fix normalization and remove + 10
             return_distance=True)
 
-        for i in range(len(list(neighbours_output[0])))[1:]:
+        for i in range(len(list(neighbours_output[0]))):
             distance = distances_output[0][i]
             neighbour = neighbours_output[0][i]
 
             neighbours.append(
-                NeighbourData(origin=track_name,
+                NeighbourData(origin=self.__trim_uploaded_postfix(track_name),
                               neighbour=self.__trim_extension(token_files[neighbour]),
                               distance=distance))
 
@@ -78,15 +94,6 @@ class SimilarityLearning:
         for neighbour_data in neighbour_data_list:
             neighbour_data.distance = 1 - neighbour_data.distance / max_distance
 
-    # Track: Bad Bunny - La Corriente.npy 	 is most similar to: 	 Avicii - Talk To Myself.npy with similarity of: 	 90.66%
-    # Track: Baby Keem - trademark usa.npy 	 is most similar to: 	 A$AP Rocky - Holy Ghost (feat. Joe Fox).npy with similarity of: 	 91.25%
-    # Track: Ariana Grande - no tears left to cry.npy 	 is most similar to: 	 Ariana Grande - Hands On Me.npy with similarity of: 	 90.96%
-    # Track: Arctic Monkeys - From The Ritz To The Rubble.npy 	 is most similar to: 	 Arctic Monkeys - The View From The Afternoon.npy with similarity of: 	 93.48%
-    # Track: Alesso - If It Wasn't For You.npy 	 is most similar to: 	 Bastille - Things We Lost In The Fire.npy with similarity of: 	 91.22%
-    # Track: Akon - I Can't Wait.npy 	 is most similar to: 	 Baby Keem - family ties (with Kendrick Lamar).npy with similarity of: 	 91.11%
-    # Track: A$AP Rocky - Jodye.npy 	 is most similar to: 	 A$AP Rocky - Lord Pretty Flacko Jodye 2 (LPFJ2).npy with similarity of: 	 100.0%
-    # Track: A$AP Rocky - Ghetto Symphony (feat. Gunplay & A$AP Ferg).npy 	 is most similar to: 	 Alan Walker - Alone, Pt. II.npy with similarity of: 	 92.71%
-
     def __associate_tracks_with_nearest_neighbour(self, token_files):
         neighbours = []
         for file in token_files:
@@ -104,12 +111,23 @@ class SimilarityLearning:
 
     @staticmethod
     def __trim_extension(file_name):
-        return file_name[:file_name.index('.')]
+        return file_name[:file_name.rindex('.')]
+
+    @staticmethod
+    def __trim_uploaded_postfix(string):
+        return string.replace("-user-uploaded", '')
+
+    @staticmethod
+    def __filter_not_user_uploaded(file_names):
+        return list(filter(lambda file_name: "-user-uploaded" not in file_name, file_names))
 
 
 if __name__ == '__main__':
     print("Running")
 
-    SimilarityLearning().find_similar_tracks('$NOT - MEGAN.')
+    # SimilarityLearning().find_similar_tracks('$NOT - MEGAN.')
+    SimilarityLearning().find_segment_similarities('$NOT - MEGAN.')
 
 # jupyter notebook --NotebookApp.allow_origin='https://colab.research.google.com' --port=8888 --NotebookApp.port_retries=0
+
+

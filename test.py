@@ -1,24 +1,64 @@
-import os
-
+import keras
+import keras_cv
 import tensorflow as tf
-from tensorflow.python.client import device_lib
+from keras import layers
+from matplotlib import pyplot as plt
+import numpy
 
+strength = [0.4, 0.4, 0.4, 0.1]
+random_brightness = layers.RandomBrightness(0.8 * strength[0])
+random_contrast = layers.RandomContrast((1 - 0.8 * strength[1], 1 + 0.8 * strength[1]))
+random_saturation = keras_cv.layers.RandomSaturation(
+    (0.5 - 0.8 * strength[2], 0.5 + 0.8 * strength[2])
+)
+random_hue = keras_cv.layers.RandomHue(0.2 * strength[3], [0,255])
+grayscale = keras_cv.layers.Grayscale()
 
-def get_available_devices():
-    local_device_protos = device_lib.list_local_devices()
-    return [x.name for x in local_device_protos]
+def color_drop(x):
+    x = grayscale(x)
+    x = tf.keras.backend.tile(x, [1, 1, 3])
+    return x
 
+def color_jitter(x):
+    x = random_brightness(x)
+    x = random_contrast(x)
+    x = random_saturation(x)
+    x = random_hue(x)
+    # Affine transformations can disturb the natural range of
+    # RGB images, hence this is needed.
+    return x
 
-print(get_available_devices())
-
-if __name__ == '__main__':
-    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
-    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-
-    physical_devices = tf.config.list_physical_devices('GPU')
-    if len(physical_devices) > 0:
-        tf.config.experimental.set_memory_growth(physical_devices[0], True)
-        print(f"TensorFlow is using GPU: {physical_devices[0]}")
+def random_apply(func, x, p):
+    if tf.random.uniform([], minval=0, maxval=1) < p: # here changed
+        return func(x)
     else:
-        print("No GPU devices found. TensorFlow will run on CPU.")
+        return x
+
+def custom_augment(image):
+    # As discussed in the SimCLR paper, the series of augmentation
+    # transformations (except for random crops) need to be applied
+    # randomly to impose translational invariance.
+    image = color_jitter(image)
+    # image = random_apply(color_jitter, image, p=0.8)
+    # image = random_apply(color_drop, image, p=0.2)
+    return image
+
+
+image = plt.imread("data/music_spectrograms/anchor/0000.png")
+
+image = custom_augment(image)
+
+plt.imshow(image)
+plt.show()
+plt.imshow(image.numpy())
+plt.show()
+plt.imshow(image.numpy().astype("int"))
+plt.show()
+
+print(numpy.core.shape(image))
+print(type(image))
+print(image[:1])
+
+print(numpy.core.shape(image))
+print(type(image.numpy()))
+print(image[:1])

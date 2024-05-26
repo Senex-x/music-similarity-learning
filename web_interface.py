@@ -14,6 +14,8 @@ app = Flask(__name__, static_folder="static")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 jsonpickle.ext.numpy.register_handlers()
 
+similarity_learning_model = SimilarityLearning()
+
 
 @app.route('/', methods=['GET'])
 def open_index():
@@ -33,13 +35,13 @@ def find_similar_music():
 
         MusicTokenizer().tokenize_uploaded_track()
 
-        similar_tracks = SimilarityLearning().find_similar_tracks(track_file_name)
+        similar_tracks = similarity_learning_model.find_similar_tracks(track_file_name)
 
-        os.remove(join(upload_folder_path, track_file_name))
+        __remove_uploaded_files(upload_folder_path, track_file_name)
 
         return jsonpickle.encode(similar_tracks)
-    except:
-        print('Error encountered')
+    except Exception as e:
+        print(f'Error encountered: {e}')
         return jsonpickle.encode([])
 
 
@@ -50,9 +52,27 @@ def upload_file():
     if file and allowed_file(file.filename):
         track_extension = file.filename[file.filename.index('.'):]
         track_file_name = file.filename[:file.filename.index('.')] + "-user-uploaded" + track_extension
+        __clear_folder(app.config['UPLOAD_FOLDER'])
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], track_file_name))
 
     return redirect(url_for('static', filename='index.html'), 302)
+
+
+def __remove_uploaded_files(upload_folder_path, uploaded_file_name):
+    try:
+        os.remove(join(upload_folder_path, uploaded_file_name))
+        os.remove(join(dirname(__file__), 'data/music_wav', uploaded_file_name[:-4] + '.wav'))
+        os.remove(join(dirname(__file__), 'data/music_tokens', uploaded_file_name[:-4] + '.npy'))
+    except Exception as e:
+        print('Failed to remove uploaded files')
+
+
+def __clear_folder(folder_path):
+    for file_name in os.listdir(folder_path):
+        try:
+            os.remove(join(folder_path, file_name))
+        except Exception as e:
+            print(f'Failed to delete file with name={file_name}')
 
 
 if __name__ == '__main__':

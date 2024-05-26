@@ -18,6 +18,9 @@ from keras import Model
 from keras.applications import resnet
 import zipfile
 
+from keras.callbacks import TensorBoard
+import datetime
+
 target_shape = (200, 200)
 
 cache_dir = join(dirname(__file__), '../data/cache')
@@ -120,6 +123,7 @@ def visualize(anchor, positive, negative):
         ax.imshow(image)
         ax.get_xaxis().set_visible(False)
         ax.get_yaxis().set_visible(False)
+        plt.show()
 
     fig = plt.figure(figsize=(9, 9))
 
@@ -137,11 +141,23 @@ base_cnn = resnet.ResNet50(
 )
 
 flatten = layers.Flatten()(base_cnn.output)
+
 dense1 = layers.Dense(512, activation="relu")(flatten)
 dense1 = layers.BatchNormalization()(dense1)
-dense2 = layers.Dense(256, activation="relu")(dense1)
+
+dense2 = layers.Dense(512, activation="relu")(dense1)
 dense2 = layers.BatchNormalization()(dense2)
-output = layers.Dense(256)(dense2)
+
+dense3 = layers.Dense(512, activation="relu")(dense2)
+dense3 = layers.BatchNormalization()(dense3)
+
+dense4 = layers.Dense(256, activation="relu")(dense3)
+dense4 = layers.BatchNormalization()(dense4)
+
+dense5 = layers.Dense(256, activation="relu")(dense4)
+dense5 = layers.BatchNormalization()(dense5)
+
+output = layers.Dense(256)(dense5)
 
 embedding = Model(base_cnn.input, output, name="Embedding")
 
@@ -249,9 +265,23 @@ class SiameseModel(Model):
         return [self.loss_tracker]
 
 
+def visualize_training():
+    # Set up TensorBoard callback
+    log_dir = "../data/tf_logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    return [TensorBoard(log_dir=log_dir,
+                         histogram_freq=1,
+                         write_graph=True,
+                         write_images=True,
+                         update_freq='epoch',
+                         profile_batch=2,
+                         embeddings_freq=1)]
+
+
+callbacks = visualize_training()
+
 siamese_model = SiameseModel(siamese_network)
 siamese_model.compile(optimizer=optimizers.Adam(0.0001))
-siamese_model.fit(train_dataset, epochs=10, validation_data=val_dataset)
+siamese_model.fit(train_dataset, epochs=50, validation_data=val_dataset, callbacks=callbacks)
 
 sample = next(iter(train_dataset))
 visualize(*sample)
