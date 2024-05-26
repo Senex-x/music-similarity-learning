@@ -4,7 +4,7 @@ import jsonpickle
 import jsonpickle.ext.numpy
 from flask import Flask, url_for, redirect, flash, request
 
-from similarity_learning import NeighbourData, SimilarityLearning
+from similarity_learning import NeighbourData, SimilarityLearning, SimilarityReport
 from tokenizer import MusicTokenizer
 
 UPLOAD_FOLDER = 'data/uploads'
@@ -36,10 +36,17 @@ def find_similar_music():
         MusicTokenizer().tokenize_uploaded_track()
 
         similar_tracks = similarity_learning_model.find_similar_tracks(track_file_name)
+        segment_similarity = similarity_learning_model.find_segment_similarities(track_file_name, similar_tracks)
 
         __remove_uploaded_files(upload_folder_path, track_file_name)
 
-        return jsonpickle.encode(similar_tracks)
+        return jsonpickle.encode(
+            SimilarityReport(
+                similar_tracks[0].origin,
+                similar_tracks,
+                segment_similarity
+            )
+        )
     except Exception as e:
         print(f'Error encountered: {e}')
         return jsonpickle.encode([])

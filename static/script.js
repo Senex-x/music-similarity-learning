@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-    onPageLoaded()
+    onPageUpdated()
 });
 
 function findSimilarMusic() {
@@ -7,14 +7,17 @@ function findSimilarMusic() {
         let i = 1
         let response = JSON.parse(rawResponse)
         let finalHtml = createHeader()
-        response.forEach((trackData) => {
-            finalHtml += createTrackRow(i++, trackData['neighbour'], trackData['distance']['value'])
+        console.log(response)
+        response['neighbour_data_list'].forEach((trackData) => {
+            finalHtml += createTrackRow(i++, trackData['neighbour'], trackData['similarity']['value'])
+            finalHtml += createDropDownList(trackData['neighbour'], response['segment_data_list'])
         })
         finalHtml += '</div>'
         document.getElementById('result').innerHTML = finalHtml
-        console.log(finalHtml)
+        // console.log(finalHtml)
         document.getElementById('trackNameText').display = true
-        document.getElementById('trackNameText').innerHTML = response[0]['origin']
+        document.getElementById('trackNameText').innerHTML = response['original_track_name']
+        onPageUpdated()
     })
 }
 
@@ -28,7 +31,17 @@ function createHeader() {
 function createTrackRow(i, trackName, similarityScore) {
     return '<div class="list-item-horizontal"><p>' + i + "." + '</p>' +
         '<p>' + trackName + '</p>' +
-        '<p>' + (similarityScore * 100).toFixed(2) + '%</p></div>'
+        '<p>' + similarityScore + '%</p></div>'
+}
+
+function createDropDownList(currentTrackName, segmentSimilarityMap) {
+    let html = '<div class="similarity-container">'
+    let i = 1
+    segmentSimilarityMap[currentTrackName].forEach((segment) => {
+        html += '<div class="similarity-item">' +
+            '<p>Секция ' + i++ + '</p><p>Совпадение </p><p>'+ segment['value'] + '%</p></div>'
+    })
+    return html + '</div>'
 }
 
 function post(url, callback) {
@@ -40,7 +53,7 @@ function post(url, callback) {
     xmlHttp.send(null);
 }
 
-function onPageLoaded() {
+function onPageUpdated() {
     setUpCollapsibleListsForTracks()
 }
 
@@ -49,8 +62,8 @@ function setUpCollapsibleListsForTracks() {
     let i;
 
     for (i = 0; i < trackItemElements.length; i++) {
-        console.log('loaded')
         trackItemElements[i].addEventListener("click", function () {
+            console.log('click')
             this.classList.toggle("active");
             let content = this.nextElementSibling;
             if (content.style.maxHeight) {

@@ -35,8 +35,8 @@ class SimilarityLearning:
     def __init__(self):
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
         self.nn_model = NearestNeighbors()
-        self.music_token_files = self.__filter_not_user_uploaded(listdir(self.tokenized_music_folder_path))[
-                                 :100]  # TODO TEMPORARY FOR TESTING
+        self.nn_model_segmented = NearestNeighbors()
+        self.music_token_files = self.__filter_not_user_uploaded(listdir(self.tokenized_music_folder_path))
         self.__train_model(self.music_token_files)
 
     def __train_model(self, music_token_files, segment: tuple[int, int] = None):
@@ -47,7 +47,10 @@ class SimilarityLearning:
             samples.append(tokens)
 
         print("Started learning...")
-        self.nn_model.fit(samples)
+        if segment:
+            self.nn_model_segmented.fit(samples)
+        else:
+            self.nn_model.fit(samples)
         print("Finished learning")
 
     @staticmethod
@@ -86,6 +89,7 @@ class SimilarityLearning:
         segment_reports = {}
 
         for i in range(segments_amount):
+            print(f'### SEGMENT {i + 1}')
             segment = (segment_length * i, segment_length * (i + 1))
             self.__train_model(neighbour_token_files_list, segment)
             neighbour_data_list = self.__find_neighbours_for_track(track_name, neighbour_token_files_list, segment)
@@ -104,7 +108,12 @@ class SimilarityLearning:
         neighbours = []
         mfcc = self.__preserve_segment(list(self.__load_mfcc_vector(track_name + '.npy')), segment)
 
-        (distances_output, neighbours_output) = self.nn_model.kneighbors(
+        if segment:
+            model = self.nn_model_segmented
+        else:
+            model = self.nn_model
+
+        (distances_output, neighbours_output) = model.kneighbors(
             [mfcc],
             n_neighbors=neighbours_amount,
             return_distance=True)
