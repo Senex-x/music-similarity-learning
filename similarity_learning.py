@@ -1,9 +1,11 @@
+import math
 import sys
 from os import listdir
 from os.path import dirname
 from os.path import join
 
 import numpy
+import numpy as np
 from numpy import shape
 from sklearn.neighbors import NearestNeighbors
 
@@ -33,6 +35,7 @@ class SimilarityReport:
 class SimilarityLearning:
 
     def __init__(self):
+        self.track_segments_amount = 8
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
         self.nn_model = NearestNeighbors()
         self.nn_model_segmented = NearestNeighbors()
@@ -78,17 +81,16 @@ class SimilarityLearning:
 
     def find_segment_similarities(self,
                                   uploaded_track_name,
-                                  found_neighbours_data_list: list[NeighbourData],
-                                  segments_amount=8):
+                                  found_neighbours_data_list: list[NeighbourData]):
         track_name = self.__trim_extension(uploaded_track_name)
         neighbour_token_files_list = list(
             map(lambda neighbour_data: neighbour_data.neighbour + '.npy', found_neighbours_data_list))
 
         mfcc_length = 128
-        segment_length = round(mfcc_length / segments_amount)
+        segment_length = round(mfcc_length / self.track_segments_amount)
         segment_reports = {}
 
-        for i in range(segments_amount):
+        for i in range(self.track_segments_amount):
             print(f'### SEGMENT {i + 1}')
             segment = (segment_length * i, segment_length * (i + 1))
             self.__train_model(neighbour_token_files_list, segment)
@@ -103,7 +105,9 @@ class SimilarityLearning:
 
         return segment_reports
 
-    def __find_neighbours_for_track(self, track_name, token_files, segment: tuple[int, int] = None,
+    def __find_neighbours_for_track(self, track_name,
+                                    token_files,
+                                    segment: tuple[int, int] = None,
                                     neighbours_amount=10):
         neighbours = []
         mfcc = self.__preserve_segment(list(self.__load_mfcc_vector(track_name + '.npy')), segment)
@@ -127,17 +131,21 @@ class SimilarityLearning:
                               neighbour=self.__trim_extension(token_files[neighbour]),
                               similarity=distance))
 
-        self.__normalize_distances(neighbours)
+        self.__normalize_distances(neighbours, segment)
         return neighbours
 
-    @staticmethod
-    def __normalize_distances(neighbour_data_list: list[NeighbourData]):
-        max_distance = -1
+    def __normalize_distances(self, neighbour_data_list: list[NeighbourData], segment: tuple[int, int] = None):
+        max_distance = 0
 
         for neighbour_data in neighbour_data_list:
+            if segment:
+                neighbour_data.similarity = neighbour_data.similarity * self.track_segments_amount
             max_distance = max(max_distance, neighbour_data.similarity)
-        for neighbour_data in neighbour_data_list:
+
+        for i, neighbour_data in enumerate(neighbour_data_list):
             similarity_score = 1 - neighbour_data.similarity / (max_distance * 1.1)
+            if segment and i != 0:
+                similarity_score /= 3
             neighbour_data.similarity = round(similarity_score * 100, 2)
 
     def __load_mfcc_vector(self, file_name):
