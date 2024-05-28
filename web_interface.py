@@ -43,6 +43,7 @@ def find_similar_music():
         return jsonpickle.encode(
             SimilarityReport(
                 similar_tracks[0].origin,
+                similar_tracks[0].origin_total_duration,
                 similar_tracks,
                 segment_similarity
             )

@@ -9,14 +9,14 @@ function findSimilarMusic() {
         let finalHtml = createHeader()
         console.log(response)
         response['neighbour_data_list'].forEach((trackData) => {
-            finalHtml += createTrackRow(i++, trackData['neighbour'], trackData['similarity']['value'])
+            finalHtml += createTrackRow(i++, trackData['neighbour'], trackData['total_duration'], trackData['similarity']['value'])
             finalHtml += createDropDownList(trackData['neighbour'], response['segment_data_list'])
         })
         finalHtml += '</div>'
         document.getElementById('result').innerHTML = finalHtml
         // console.log(finalHtml)
         document.getElementById('trackNameText').display = true
-        document.getElementById('trackNameText').innerHTML = response['original_track_name']
+        document.getElementById('trackNameText').innerHTML = response['original_track_name'] + ' (' + response['original_track_total_duration'] + ')'
         onPageUpdated()
     })
 }
@@ -28,9 +28,10 @@ function createHeader() {
         '</div>'
 }
 
-function createTrackRow(i, trackName, similarityScore) {
+function createTrackRow(i, trackName, duration, similarityScore) {
     return '<div class="list-item-horizontal"><p>' + i + "." + '</p>' +
         '<p>' + trackName + '</p>' +
+        '<p class="secondary">(' + duration + ')</p>' +
         '<p>' + similarityScore + '%</p></div>'
 }
 
@@ -39,7 +40,10 @@ function createDropDownList(currentTrackName, segmentSimilarityMap) {
     let i = 1
     segmentSimilarityMap[currentTrackName].forEach((segment) => {
         html += '<div class="similarity-item">' +
-            '<p>Секция ' + i++ + '</p><p>Совпадение </p><p>'+ segment['value'] + '%</p></div>'
+            '<p>Секция ' + i++ + ' </p>' +
+            '<p class="secondary">(' + segment['duration_start'] + ' - ' + segment['duration_end'] + ') </p>' +
+            '<p>Совпадение </p>' +
+            '<p>' + segment['similarity']['value'] + '%</p></div>'
     })
     return html + '</div>'
 }

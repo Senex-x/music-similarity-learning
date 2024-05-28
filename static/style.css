@@ -12,6 +12,10 @@ p {
     font-size: 20px;
 }
 
+p.secondary {
+    color: darkgray;
+}
+
 button, input {
     background-color: var(--accent-color);
     border: 4px solid #2f3d65;
@@ -85,7 +89,7 @@ body {
     margin: 0;
 }
 
-.similarity-item > p:nth-child(2) {
+.similarity-item > p:nth-child(3) {
     margin-left: auto;
 }
 
