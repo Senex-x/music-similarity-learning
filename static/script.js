@@ -22,7 +22,7 @@ function findSimilarMusic() {
 }
 
 function createHeader() {
-    return '<div class="list-item-horizontal" style="background-color: var(--accent-color)">' +
+    return '<div class="list-item-horizontal" style="background-color: var(--accent-color); margin-bottom: 16px">' +
         '<p style="flex: 1;">Название трека</p>' +
         '<p>Процент схожести</p>' +
         '</div>'

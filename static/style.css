@@ -77,7 +77,7 @@ body {
 }
 
 .similarity-container > .similarity-item + .similarity-item {
-    padding-top: 10px;
+    padding-top: 8px;
     border-top: 2px solid #2f3d65;
 }
 
