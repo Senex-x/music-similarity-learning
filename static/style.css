@@ -1,11 +1,14 @@
 :root {
-    --accent-color: #4b5a80;
-    --hover-accent-color: #7086be;
+    --background-color: #cde1ff;
+    --accent-color: #64b2ff;
+    --border-accent-color: #268eff;
+    --hover-accent-color: #92c6ff;
+    --hover-secondary-accent-color: #8aceff;
 }
 
 p, h1, h2, input, button {
     font-family: 'Arial';
-    color: white;
+    color: black;
 }
 
 p {
@@ -13,12 +16,13 @@ p {
 }
 
 p.secondary {
-    color: darkgray;
+    color: #868686;
 }
 
 button, input {
     background-color: var(--accent-color);
-    border: 4px solid #2f3d65;
+    border: 4px solid var(--border-accent-color);
+    font-weight: bold;
     border-radius: 10px;
     font-size: 20px;
 }
@@ -28,7 +32,7 @@ button:hover, input:hover {
 }
 
 body {
-    background-color: #1b233b;
+    background-color: var(--background-color);
 }
 
 #main-container {
@@ -47,14 +51,14 @@ body {
     flex-direction: row;
     justify-content: center;
     column-gap: 16px;
-    border: 4px solid #2f3d65;
+    border: 4px solid var(--accent-color);
     border-radius: 10px;
     padding: 0 16px;
     margin: 8px 0;
 }
 
 .list-item-horizontal:hover {
-    background-color: #394a7c;
+    background-color:var(--hover-accent-color);
 }
 
 .list-item-horizontal > p:last-child {
@@ -76,13 +80,13 @@ body {
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 8px;
+    padding: 10px;
     column-gap: 8px;
 }
 
 .similarity-container > .similarity-item + .similarity-item {
-    padding-top: 8px;
-    border-top: 2px solid #2f3d65;
+    padding-top: 16px;
+    border-top: 2px solid var(--hover-secondary-accent-color);
 }
 
 .similarity-item > p {

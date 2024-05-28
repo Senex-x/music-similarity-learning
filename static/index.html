@@ -11,17 +11,17 @@
     <h1>Поиск похожей музыки</h1>
     <div>
         <form action="/upload_music_file" method=post enctype=multipart/form-data>
-            <input id="file-input" style="padding: 11px;"
+            <input id="file-input" style="padding: 16px;"
                    type=file name=file accept=".mp3">
-            <input style="padding: 14px;"
+            <input style="padding: 19px;"
                    type=submit value="Загрузить"/>
-            <button style="padding: 14px;" type="button"
+            <button style="padding: 19px;" type="button"
                     onclick="findSimilarMusic()">Поиск
             </button>
         </form>
     </div>
     <h2 id="trackNameText" style="padding: 16px;"></h2>
-    <div id="result"> </div>
+    <div id="result"></div>
 </div>
 </body>
 </html>
