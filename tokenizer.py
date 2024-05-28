@@ -9,6 +9,7 @@ import numpy
 from pydub import AudioSegment
 from pylab import *
 
+from compressor import compress_matrix
 from concurrency_utils import ConcurrencyUtils
 import matplotlib.pyplot as plt
 
@@ -16,6 +17,7 @@ import matplotlib.pyplot as plt
 class MusicTokenizer:
 
     def __init__(self):
+        self.mfcc_length = 500
         self.music_folder_path = join(dirname(__file__), 'data/music_mp3')
         self.converted_music_folder_path = join(dirname(__file__), 'data/music_wav')
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
@@ -66,10 +68,12 @@ class MusicTokenizer:
                                               res_type='kaiser_fast')
 
                 # extract features from the audio
-                mfcc_matrix = librosa.feature.mfcc(y=x, sr=sample_rate, n_mfcc=128)
+                mfcc_matrix = librosa.feature.mfcc(y=x, sr=sample_rate, n_mfcc=32)
                 # output: coefficients to time frames
-                mfcc = np.mean(mfcc_matrix, axis=1)
-
+                if len(mfcc_matrix[0]) < self.mfcc_length:
+                    mfcc_matrix = numpy.pad(mfcc_matrix, ((0, 0), (0, self.mfcc_length - len(mfcc_matrix[0]))), mode='constant')
+                mfcc_matrix = compress_matrix(mfcc_matrix, target_columns=self.mfcc_length)
+                mfcc = np.mean(mfcc_matrix, axis=0)
                 numpy.save(join(self.tokenized_music_folder_path, wav_file_name[:-4]), mfcc)
             except:
                 print(f"Error while tokenizing {wav_file_name}")
@@ -121,9 +125,9 @@ class MusicTokenizer:
 
 
 if __name__ == '__main__':
-    # MusicTokenizer().tokenize()
+    MusicTokenizer().tokenize()
 
-    MusicTokenizer().create_spectrogram_from_wav_file('Alan Walker - Intro.wav')
+    # MusicTokenizer().create_spectrogram_from_wav_file('Alan Walker - Intro.wav')
 
     # y, sr = librosa.load(librosa.ex('libri1'))
     # mfcc = librosa.feature.mfcc(y=y, sr=sr)
