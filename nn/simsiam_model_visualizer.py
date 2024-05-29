@@ -21,7 +21,9 @@ import zipfile
 from keras.callbacks import TensorBoard
 import datetime
 
-target_shape = (200, 200)
+from keras.utils import plot_model
+
+target_shape = (128, 500)
 
 cache_dir = join(dirname(__file__), '../data/cache')
 anchor_images_path = join(cache_dir, "left")
@@ -279,9 +281,11 @@ def visualize_training():
 
 callbacks = visualize_training()
 
+plot_model(siamese_network, to_file=datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + '.png', show_shapes=True)
+print("png created")
 siamese_model = SiameseModel(siamese_network)
 siamese_model.compile(optimizer=optimizers.Adam(0.0001))
-siamese_model.fit(train_dataset, epochs=50, validation_data=val_dataset, callbacks=callbacks)
+siamese_model.fit(train_dataset, epochs=10, validation_data=val_dataset, callbacks=callbacks)
 
 sample = next(iter(train_dataset))
 visualize(*sample)
