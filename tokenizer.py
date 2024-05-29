@@ -9,7 +9,7 @@ import numpy
 from pydub import AudioSegment
 from pylab import *
 
-from compressor import compress_matrix
+from compression_utils import compress_matrix, resize_matrix
 from concurrency_utils import ConcurrencyUtils
 import matplotlib.pyplot as plt
 
@@ -70,9 +70,8 @@ class MusicTokenizer:
                 # extract features from the audio
                 mfcc_matrix = librosa.feature.mfcc(y=x, sr=sample_rate, n_mfcc=32)
                 # output: coefficients to time frames
-                if len(mfcc_matrix[0]) < self.mfcc_length:
-                    mfcc_matrix = numpy.pad(mfcc_matrix, ((0, 0), (0, self.mfcc_length - len(mfcc_matrix[0]))), mode='constant')
-                mfcc_matrix = compress_matrix(mfcc_matrix, target_columns=self.mfcc_length)
+                mfcc_matrix = resize_matrix(mfcc_matrix, target_length=self.mfcc_length)
+
                 mfcc = np.mean(mfcc_matrix, axis=0)
                 numpy.save(join(self.tokenized_music_folder_path, wav_file_name[:-4]), mfcc)
             except:
@@ -93,13 +92,14 @@ class MusicTokenizer:
 
                 S = librosa.feature.melspectrogram(y=x, sr=sample_rate, n_mels=128, fmax=2000) # 2k is ok perhaps
                 mfccs = librosa.feature.mfcc(y=x, sr=sample_rate, n_mfcc=30)
+                # mfccs = resize_matrix(mfccs, target_length=self.mfcc_length)
 
                 fig, ax = plt.subplots(nrows=2, sharex=True)
                 img = librosa.display.specshow(librosa.power_to_db(S, ref=np.max),
                                                x_axis='time', y_axis='mel', fmax=8000,
                                                ax=ax[0])
                 fig.colorbar(img, ax=[ax[0]])
-                fig.set_figwidth(12)
+                fig.set_figwidth(10)
 
                 ax[0].set(title='Mel spectrogram')
                 ax[0].label_outer()
@@ -125,9 +125,9 @@ class MusicTokenizer:
 
 
 if __name__ == '__main__':
-    MusicTokenizer().tokenize()
-
-    # MusicTokenizer().create_spectrogram_from_wav_file('Alan Walker - Intro.wav')
+    # MusicTokenizer().tokenize()
+    # 'Piano Rockstar - Tides - Piano Version.wav
+    MusicTokenizer().create_spectrogram_from_wav_file('Piano Rockstar - Tides - Piano Version.wav')
 
     # y, sr = librosa.load(librosa.ex('libri1'))
     # mfcc = librosa.feature.mfcc(y=y, sr=sr)

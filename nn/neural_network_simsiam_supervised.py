@@ -269,12 +269,12 @@ def visualize_training():
     # Set up TensorBoard callback
     log_dir = "../data/tf_logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     return [TensorBoard(log_dir=log_dir,
-                         histogram_freq=1,
-                         write_graph=True,
-                         write_images=True,
-                         update_freq='epoch',
-                         profile_batch=2,
-                         embeddings_freq=1)]
+                        histogram_freq=0,
+                        write_graph=False,
+                        write_images=False,
+                        update_freq='epoch',
+                        profile_batch=2,
+                        embeddings_freq=0)]
 
 
 callbacks = visualize_training()
