@@ -9,12 +9,12 @@ import numpy
 import numpy as np
 from mutagen.wave import WAVE
 from numpy import shape
-from sklearn.neighbors import NearestNeighbors as SimSLRModel
+from sklearn.neighbors import NearestNeighbors as SimCLRModel
 import mutagen
 import time
 
 
-class NeighbourData:
+class SimilarTrackData:
     def __init__(self, origin, neighbour, similarity, origin_total_duration, total_duration):
         self.origin = origin
         self.neighbour = neighbour
@@ -34,7 +34,7 @@ class SimilarityReport:
     def __init__(self,
                  original_track_name,
                  original_track_total_duration,
-                 neighbour_data_list: list[NeighbourData],
+                 neighbour_data_list: list[SimilarTrackData],
                  segment_data_list: dict[list[SimilaritySegmentData]]):
         self.original_track_name = original_track_name
         self.original_track_total_duration = original_track_total_duration
@@ -48,8 +48,8 @@ class SimilarityLearning:
         self.track_segments_amount = 8
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
         self.wav_music_folder_path = join(dirname(__file__), 'data/music_wav')
-        self.nn_model = SimSLRModel()
-        self.nn_model_segmented = SimSLRModel()
+        self.nn_model = SimCLRModel()
+        self.nn_model_segmented = SimCLRModel()
         self.music_token_files = self.__filter_not_user_uploaded(listdir(self.tokenized_music_folder_path))
         self.__train_model(self.music_token_files)
 
@@ -75,16 +75,15 @@ class SimilarityLearning:
             return vector
 
     def find_similar_tracks(self, track_file_name, neighbour_amount=10):
-        neighbour_data_list = self.__find_neighbours_for_track(self.__trim_extension(track_file_name),
-                                                               self.music_token_files,
-                                                               None,
-                                                               neighbour_amount)
+        neighbour_data_list = self.__find_similar_for_track(self.__trim_extension(track_file_name),
+                                                            self.music_token_files,
+                                                            None,
+                                                            neighbour_amount)
         self.__visualise_neighbours(neighbour_data_list)
-        # self.__find_nearest_neighbour_for_each_track(nn_model, music_token_files)
         return neighbour_data_list
 
     @staticmethod
-    def __visualise_neighbours(neighbour_data_list: list[NeighbourData]):
+    def __visualise_neighbours(neighbour_data_list: list[SimilarTrackData]):
         print(f'Track: {neighbour_data_list[0].origin} is most similar to:')
         for i, neighbour_data in enumerate(neighbour_data_list):
             print(f'{i + 1}: {neighbour_data.neighbour}'
@@ -92,7 +91,7 @@ class SimilarityLearning:
 
     def find_segment_similarities(self,
                                   uploaded_track_name,
-                                  found_neighbours_data_list: list[NeighbourData]):
+                                  found_neighbours_data_list: list[SimilarTrackData]):
         track_name = self.__trim_extension(uploaded_track_name)
         neighbour_token_files_list = list(
             map(lambda neighbour_data: neighbour_data.neighbour + '.npy', found_neighbours_data_list))
@@ -105,7 +104,7 @@ class SimilarityLearning:
             print(f'### SEGMENT {i + 1}')
             segment = (segment_length * i, segment_length * (i + 1))
             self.__train_model(neighbour_token_files_list, segment)
-            neighbour_data_list = self.__find_neighbours_for_track(track_name, neighbour_token_files_list, segment)
+            neighbour_data_list = self.__find_similar_for_track(track_name, neighbour_token_files_list, segment)
             self.__visualise_neighbours(neighbour_data_list)
 
             for neighbour_data in neighbour_data_list:
@@ -119,10 +118,10 @@ class SimilarityLearning:
 
         return segment_reports
 
-    def __find_neighbours_for_track(self, track_name,
-                                    token_files,
-                                    segment: tuple[int, int] = None,
-                                    neighbours_amount=10):
+    def __find_similar_for_track(self, track_name,
+                                 token_files,
+                                 segment: tuple[int, int] = None,
+                                 neighbours_amount=10):
         neighbours = []
         mfcc = self.__preserve_segment(list(self.__load_mfcc_vector(track_name + '.npy')), segment)
 
@@ -143,16 +142,16 @@ class SimilarityLearning:
             _, duration = self.__get_track_duration_formatted(self.__trim_extension(token_files[neighbour]))
 
             neighbours.append(
-                NeighbourData(origin=self.__trim_uploaded_postfix(track_name),
-                              neighbour=self.__trim_extension(token_files[neighbour]),
-                              similarity=distance,
-                              origin_total_duration=origin_duration,
-                              total_duration=duration))
+                SimilarTrackData(origin=self.__trim_uploaded_postfix(track_name),
+                                 neighbour=self.__trim_extension(token_files[neighbour]),
+                                 similarity=distance,
+                                 origin_total_duration=origin_duration,
+                                 total_duration=duration))
 
         self.__normalize_distances(neighbours, segment)
         return neighbours
 
-    def __normalize_distances(self, neighbour_data_list: list[NeighbourData], segment: tuple[int, int] = None):
+    def __normalize_distances(self, neighbour_data_list: list[SimilarTrackData], segment: tuple[int, int] = None):
         max_distance = 0
 
         for neighbour_data in neighbour_data_list:
@@ -192,41 +191,3 @@ class SimilarityLearning:
     @staticmethod
     def __filter_not_user_uploaded(file_names):
         return list(filter(lambda file_name: "-user-uploaded" not in file_name, file_names))
-
-    # def __associate_tracks_with_nearest_neighbour(self, token_files):
-
-
-#     neighbours = []
-#     for file in token_files:
-#         nearest_neighbours = self.nn_model.kneighbors([self.__load_mfcc_vector(file).tolist()],
-#                                                       n_neighbors=2,
-#                                                       return_distance=True)
-#         nearest_neighbour = NeighbourData(origin=self.__trim_extension(file),
-#                                           neighbour=self.__trim_extension(token_files[nearest_neighbours[1][0][1]]),
-#                                           distance=nearest_neighbours[0][0][1])
-#         neighbours.append(nearest_neighbour)
-#     return neighbours
-
-# def __find_nearest_neighbour_for_each_track(self, token_files):
-#     neighbour_data_list = self.__associate_tracks_with_nearest_neighbour(token_files)
-#     self.__normalize_distances(neighbour_data_list)
-#
-#     for neighbour_data in neighbour_data_list:
-#         print(f'Track: {neighbour_data.origin} \t is most similar to: \t {neighbour_data.neighbour} '
-#               f'\t with similarity of: \t {round(neighbour_data.distance * 100, 2)}%')
-
-
-if __name__ == '__main__':
-    print("Running")
-
-    # example
-    # model = SimilarityLearning()
-    # neighbours_list = model.find_similar_tracks('$uicideboy$ - WAR TIME ALL THE TIME')
-    # segment_similarity = model.find_segment_similarities('$uicideboy$ - WAR TIME ALL THE TIME', neighbours_list)
-    # SimilarityReport(
-    #     '$uicideboy$ - WAR TIME ALL THE TIME',
-    #     neighbours_list,
-    #     segment_similarity
-    # )
-
-# jupyter notebook --NotebookApp.allow_origin='https://colab.research.google.com' --port=8888 --NotebookApp.port_retries=0

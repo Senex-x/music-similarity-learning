@@ -123,7 +123,6 @@ val_dataset = val_dataset.prefetch(tf.data.AUTOTUNE)
 
 
 def visualize(anchor, positive, negative):
-    """Visualize a few triplets from the supplied batches."""
 
     def show(ax, image):
         ax.imshow(image)
@@ -139,19 +138,6 @@ def visualize(anchor, positive, negative):
         show(axs[i, 1], positive[i])
         show(axs[i, 2], negative[i])
 
-
-# 1 полноразмерная сеть
-# 2 базовая сеть
-# 3 малая сеть
-# дальше в обратном порядке
-# 7 simple
-# 8 extra big
-# 9 extra small
-# 10 default + batch 64
-# 11 def batch 128
-# 14 margin 0.3
-
-visualize(*list(train_dataset.take(1).as_numpy_iterator())[0])
 
 base_cnn = resnet.ResNet50(
     weights="imagenet", input_shape=target_shape + (3,), include_top=False,

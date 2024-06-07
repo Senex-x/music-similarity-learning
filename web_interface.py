@@ -4,7 +4,7 @@ import jsonpickle
 import jsonpickle.ext.numpy
 from flask import Flask, url_for, redirect, flash, request
 
-from similarity_learning import NeighbourData, SimilarityLearning, SimilarityReport
+from similarity_learning import SimilarTrackData, SimilarityLearning, SimilarityReport
 from tokenizer import MusicTokenizer
 
 UPLOAD_FOLDER = 'data/uploads'
@@ -63,7 +63,7 @@ def upload_file():
         __clear_folder(app.config['UPLOAD_FOLDER'])
         file.save(os.path.join(app.config['UPLOAD_FOLDER'], track_file_name))
 
-    return redirect(url_for('static', filename='index.html'), 302)
+    return '', 204
 
 
 def __remove_uploaded_files(upload_folder_path, uploaded_file_name):

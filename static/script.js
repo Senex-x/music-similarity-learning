@@ -3,6 +3,8 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function findSimilarMusic() {
+    document.getElementById('file-upload-success-text').style.display = "none"
+    document.getElementById('loader').style.display = "block"
     post('/find_similar_music', function (rawResponse) {
         let i = 1
         let response = JSON.parse(rawResponse)
@@ -15,9 +17,9 @@ function findSimilarMusic() {
         finalHtml += '</div>'
         document.getElementById('result').innerHTML = finalHtml
         // console.log(finalHtml)
-        document.getElementById('trackNameText').display = true
         document.getElementById('trackNameText').innerHTML = response['original_track_name'] + ' (' + response['original_track_total_duration'] + ')'
         onPageUpdated()
+        document.getElementById('loader').style.display = "none"
     })
 }
 
@@ -59,6 +61,12 @@ function post(url, callback) {
 
 function onPageUpdated() {
     setUpCollapsibleListsForTracks()
+
+    document.getElementById('file-upload-button').addEventListener("click", function () {
+        setTimeout(() => {
+            document.getElementById('file-upload-success-text').style.display = "block"
+        }, 300)
+    });
 }
 
 function setUpCollapsibleListsForTracks() {
