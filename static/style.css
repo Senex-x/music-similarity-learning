@@ -1,5 +1,5 @@
 :root {
-    --background-color: #cde1ff;
+    --background-color: #e5eeff;
     --accent-color: #64b2ff;
     --border-accent-color: #268eff;
     --hover-accent-color: #92c6ff;
@@ -21,7 +21,7 @@ p.secondary {
 
 button, input {
     background-color: var(--accent-color);
-    border: 4px solid var(--border-accent-color);
+    border: 0px solid var(--border-accent-color);
     font-weight: bold;
     border-radius: 10px;
     font-size: 20px;

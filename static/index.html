@@ -8,14 +8,14 @@
 <script src="script.js"></script>
 <body>
 <div id="main-container">
-    <h1>Поиск похожей музыки</h1>
+    <h1>Система рекомендации похожей музыки</h1>
     <div>
         <form action="/upload_music_file" method=post enctype=multipart/form-data>
-            <input id="file-input" style="padding: 16px;"
+            <input id="file-input" style="padding: 16px; margin: 4px"
                    type=file name=file accept=".mp3">
-            <input style="padding: 19px;"
+            <input style="padding: 19px; margin: 4px"
                    type=submit value="Загрузить"/>
-            <button style="padding: 19px;" type="button"
+            <button style="padding: 19px; margin: 4px" type="button"
                     onclick="findSimilarMusic()">Поиск
             </button>
         </form>

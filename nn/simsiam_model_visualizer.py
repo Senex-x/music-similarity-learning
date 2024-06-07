@@ -1,5 +1,6 @@
 from os.path import join, dirname
 
+import keras
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -23,7 +24,8 @@ import datetime
 
 from keras.utils import plot_model
 
-target_shape = (128, 500)
+# target_shape = (200, 200)
+target_shape = (128, 512)
 
 cache_dir = join(dirname(__file__), '../data/cache')
 anchor_images_path = join(cache_dir, "left")
@@ -111,10 +113,10 @@ dataset = dataset.map(preprocess_triplets)
 train_dataset = dataset.take(round(image_count * 0.8))
 val_dataset = dataset.skip(round(image_count * 0.8))
 
-train_dataset = train_dataset.batch(32, drop_remainder=False)
+train_dataset = train_dataset.batch(64, drop_remainder=False)
 train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
 
-val_dataset = val_dataset.batch(32, drop_remainder=False)
+val_dataset = val_dataset.batch(64, drop_remainder=False)
 val_dataset = val_dataset.prefetch(tf.data.AUTOTUNE)
 
 
@@ -138,30 +140,37 @@ def visualize(anchor, positive, negative):
 
 visualize(*list(train_dataset.take(1).as_numpy_iterator())[0])
 
-base_cnn = resnet.ResNet50(
-    weights="imagenet", input_shape=target_shape + (3,), include_top=False
-)
+base_cnn = keras.models.Sequential()
+
+base_cnn.add(keras.layers.Input(shape=target_shape, batch_size=64))
 
 flatten = layers.Flatten()(base_cnn.output)
 
+
 dense1 = layers.Dense(512, activation="relu")(flatten)
 dense1 = layers.BatchNormalization()(dense1)
-
-dense2 = layers.Dense(512, activation="relu")(dense1)
+dense2 = layers.Dense(256, activation="relu")(dense1)
 dense2 = layers.BatchNormalization()(dense2)
+output = layers.Dense(256)(dense2)
 
-dense3 = layers.Dense(512, activation="relu")(dense2)
-dense3 = layers.BatchNormalization()(dense3)
+# dense1 = layers.Dense(512, activation="relu")(flatten)
+# dense1 = layers.BatchNormalization()(dense1)
+#
+# dense2 = layers.Dense(512, activation="relu")(dense1)
+# dense2 = layers.BatchNormalization()(dense2)
+#
+# dense3 = layers.Dense(512, activation="relu")(dense2)
+# dense3 = layers.BatchNormalization()(dense3)
+#
+# dense4 = layers.Dense(256, activation="relu")(dense3)
+# dense4 = layers.BatchNormalization()(dense4)
+#
+# dense5 = layers.Dense(256, activation="relu")(dense4)
+# dense5 = layers.BatchNormalization()(dense5)
 
-dense4 = layers.Dense(256, activation="relu")(dense3)
-dense4 = layers.BatchNormalization()(dense4)
+# output = layers.Dense(256)(dense5)
 
-dense5 = layers.Dense(256, activation="relu")(dense4)
-dense5 = layers.BatchNormalization()(dense5)
-
-output = layers.Dense(256)(dense5)
-
-embedding = Model(base_cnn.input, output, name="Embedding")
+embedding = Model(base_cnn.input, output, name="Encoder")
 
 trainable = False
 for layer in base_cnn.layers:
@@ -186,14 +195,14 @@ class DistanceLayer(layers.Layer):
         return (ap_distance, an_distance)
 
 
-anchor_input = layers.Input(name="anchor", shape=target_shape + (3,))
-positive_input = layers.Input(name="positive", shape=target_shape + (3,))
-negative_input = layers.Input(name="negative", shape=target_shape + (3,))
+anchor_input = layers.Input(name="anchor", shape= target_shape, batch_size=64 )
+positive_input = layers.Input(name="positive", shape= target_shape, batch_size=64 )
+negative_input = layers.Input(name="negative", shape= target_shape, batch_size=64 )
 
 distances = DistanceLayer()(
-    embedding(resnet.preprocess_input(anchor_input)),
-    embedding(resnet.preprocess_input(positive_input)),
-    embedding(resnet.preprocess_input(negative_input)),
+    embedding(anchor_input),
+    embedding(positive_input),
+    embedding(negative_input),
 )
 
 siamese_network = Model(
@@ -267,25 +276,13 @@ class SiameseModel(Model):
         return [self.loss_tracker]
 
 
-def visualize_training():
-    # Set up TensorBoard callback
-    log_dir = "../data/tf_logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    return [TensorBoard(log_dir=log_dir,
-                        histogram_freq=0,
-                        write_graph=False,
-                        write_images=False,
-                        update_freq='epoch',
-                        profile_batch=2,
-                        embeddings_freq=0)]
+if target_shape[0] == 128:
+    plot_model(siamese_network, expand_nested=True, to_file='model-scheme.png', show_shapes=True)
+    raise Exception
 
-
-callbacks = visualize_training()
-
-plot_model(siamese_network, to_file=datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + '.png', show_shapes=True)
-print("png created")
 siamese_model = SiameseModel(siamese_network)
 siamese_model.compile(optimizer=optimizers.Adam(0.0001))
-siamese_model.fit(train_dataset, epochs=10, validation_data=val_dataset, callbacks=callbacks)
+siamese_model.fit(train_dataset, epochs=10, validation_data=val_dataset)
 
 sample = next(iter(train_dataset))
 visualize(*sample)

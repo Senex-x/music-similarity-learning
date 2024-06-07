@@ -9,7 +9,7 @@ import numpy
 import numpy as np
 from mutagen.wave import WAVE
 from numpy import shape
-from sklearn.neighbors import NearestNeighbors
+from sklearn.neighbors import NearestNeighbors as SimSLRModel
 import mutagen
 import time
 
@@ -48,8 +48,8 @@ class SimilarityLearning:
         self.track_segments_amount = 8
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
         self.wav_music_folder_path = join(dirname(__file__), 'data/music_wav')
-        self.nn_model = NearestNeighbors()
-        self.nn_model_segmented = NearestNeighbors()
+        self.nn_model = SimSLRModel()
+        self.nn_model_segmented = SimSLRModel()
         self.music_token_files = self.__filter_not_user_uploaded(listdir(self.tokenized_music_folder_path))
         self.__train_model(self.music_token_files)
 
@@ -140,7 +140,7 @@ class SimilarityLearning:
             distance = distances_output[0][i]
             neighbour = neighbours_output[0][i]
             _, origin_duration = self.__get_track_duration_formatted(track_name)
-            _, duration = self.__get_track_duration_formatted(token_files[neighbour])
+            _, duration = self.__get_track_duration_formatted(self.__trim_extension(token_files[neighbour]))
 
             neighbours.append(
                 NeighbourData(origin=self.__trim_uploaded_postfix(track_name),
@@ -170,7 +170,7 @@ class SimilarityLearning:
         return numpy.load(join(self.tokenized_music_folder_path, file_name))
 
     def __get_track_duration_formatted(self, track_name, segment_index=None) -> tuple[string, string]:
-        track_name = join(self.wav_music_folder_path, self.__trim_extension(track_name) + '.wav')
+        track_name = join(self.wav_music_folder_path, track_name + '.wav')
         start_duration = 0
         end_duration = librosa.get_duration(path=track_name)
         if segment_index or segment_index == 0:
@@ -218,10 +218,6 @@ class SimilarityLearning:
 
 if __name__ == '__main__':
     print("Running")
-
-    print(bool(0))
-    print(bool(0 == 0))
-    print(bool(None == 0))
 
     # example
     # model = SimilarityLearning()

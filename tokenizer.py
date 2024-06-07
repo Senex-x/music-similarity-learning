@@ -25,8 +25,7 @@ class MusicTokenizer:
         self.uploaded_music_folder_path = join(dirname(__file__), 'data/uploads')
 
     def tokenize(self):
-        # Yet not needed, also freezes indefinitely on finish
-        # self.__convert_mp3_files_to_wav(source_folder=self.music_folder_path)
+        self.__convert_mp3_files_to_wav(source_folder=self.music_folder_path)
         self.__extract_feature_vectors()
 
     def tokenize_uploaded_track(self):
@@ -91,7 +90,7 @@ class MusicTokenizer:
                 print(shape(x))
 
                 S = librosa.feature.melspectrogram(y=x, sr=sample_rate, n_mels=128, fmax=2000) # 2k is ok perhaps
-                mfccs = librosa.feature.mfcc(y=x, sr=sample_rate, n_mfcc=30)
+                mfccs = librosa.feature.mfcc(y=x, sr=sample_rate, n_mfcc=32)
                 # mfccs = resize_matrix(mfccs, target_length=self.mfcc_length)
 
                 fig, ax = plt.subplots(nrows=2, sharex=True)
@@ -125,9 +124,9 @@ class MusicTokenizer:
 
 
 if __name__ == '__main__':
-    # MusicTokenizer().tokenize()
+    MusicTokenizer().tokenize() # now 15435
     # 'Piano Rockstar - Tides - Piano Version.wav
-    MusicTokenizer().create_spectrogram_from_wav_file('Piano Rockstar - Tides - Piano Version.wav')
+    # MusicTokenizer().create_spectrogram_from_wav_file('Piano Rockstar - Tides - Piano Version.wav')
 
     # y, sr = librosa.load(librosa.ex('libri1'))
     # mfcc = librosa.feature.mfcc(y=y, sr=sr)
