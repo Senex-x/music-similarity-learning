@@ -4,7 +4,6 @@ from keras import layers
 
 
 class EncoderProvider:
-
     target_shape = (128, 512)
     batch_size = 64
     encoder = None

@@ -1,17 +1,13 @@
-import math
 import string
-import sys
+import time
 from os import listdir
 from os.path import dirname
 from os.path import join
+
 import librosa
 import numpy
-import numpy as np
-from mutagen.wave import WAVE
-from numpy import shape
-from sklearn.neighbors import NearestNeighbors as SimCLRModel
-import mutagen
-import time
+
+from nn.model_handler import SimCLRModelFramework
 
 
 class SimilarTrackData:
@@ -48,8 +44,8 @@ class SimilarityLearning:
         self.track_segments_amount = 8
         self.tokenized_music_folder_path = join(dirname(__file__), 'data/music_tokens')
         self.wav_music_folder_path = join(dirname(__file__), 'data/music_wav')
-        self.nn_model = SimCLRModel()
-        self.nn_model_segmented = SimCLRModel()
+        self.nn_model = SimCLRModelFramework().get_model()
+        self.nn_model_segmented = SimCLRModelFramework().get_model()
         self.music_token_files = self.__filter_not_user_uploaded(listdir(self.tokenized_music_folder_path))
         self.__train_model(self.music_token_files)
 

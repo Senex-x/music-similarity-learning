@@ -1,10 +1,11 @@
 import os
 from os.path import join, dirname
+
 import jsonpickle
 import jsonpickle.ext.numpy
-from flask import Flask, url_for, redirect, flash, request
+from flask import Flask, url_for, redirect, request
 
-from similarity_learning import SimilarTrackData, SimilarityLearning, SimilarityReport
+from similarity_learning import SimilarityLearning, SimilarityReport
 from tokenizer import MusicTokenizer
 
 UPLOAD_FOLDER = 'data/uploads'
@@ -81,13 +82,3 @@ def __clear_folder(folder_path):
             os.remove(join(folder_path, file_name))
         except Exception as e:
             print(f'Failed to delete file with name={file_name}')
-
-
-if __name__ == '__main__':
-    app.run(port=8080, debug=True)
-    # track_file_name = os.listdir(join(dirname(__file__), UPLOAD_FOLDER))[0]
-    #
-    # MusicTokenizer().tokenize_uploaded_track()
-    #
-    # similar_tracks = SimilarityLearning().find_similar_tracks(track_file_name)
-

@@ -3,6 +3,7 @@ from os.path import dirname
 
 import jsonpickle
 import keras
+import sklearn
 import tensorflow as tf
 from keras import Model
 from keras import layers
@@ -67,6 +68,9 @@ class SimCLRModelFramework:
         with open("embeddings.json", "w") as text_file:
             text_file.write(jsonpickle.encode(result))
 
+    def get_model(self):
+        return sklearn.neighbors.NearestNeighbors()
+
     @staticmethod
     def __create_and_train_model(train_dataset, val_dataset):
         simclr_network = SimCLRModelFramework.create_simclr_network()
@@ -105,4 +109,3 @@ class SimCLRModelFramework:
         )
 
         return simclr_network
-

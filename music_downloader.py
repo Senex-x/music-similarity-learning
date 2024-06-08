@@ -1,4 +1,3 @@
-import csv
 import os
 from os import path
 from os.path import dirname
