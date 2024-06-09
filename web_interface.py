@@ -82,3 +82,7 @@ def __clear_folder(folder_path):
             os.remove(join(folder_path, file_name))
         except Exception as e:
             print(f'Failed to delete file with name={file_name}')
+
+
+if __name__ == '__main__':
+    app.run(port=8080, debug=True)
